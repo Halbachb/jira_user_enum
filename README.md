@@ -1,4 +1,4 @@
-# jira_user_enum
+# jira_user_enum auxiliary scanner Metasploit Module
 metasploit module to perform user enumeration against Jira servers
 
 # How to import:
