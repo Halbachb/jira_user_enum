@@ -93,25 +93,25 @@ class MetasploitModule < Msf::Auxiliary
 
   end
 
-  def check_host(ip)
-    res = send_request_cgi(
-      'uri'     => base_uri,
-      'method'  => 'GET',
-      'headers' => { 'Connection' => 'Close' }
-    )
+# def check_host(ip)
+  #   res = send_request_cgi(
+  #     'uri'     => base_uri,
+  #     'method'  => 'GET',
+  #     'headers' => { 'Connection' => 'Close' }
+  #   )
 
-    unless res
-      return Exploit::CheckCode::Unknown
-    end
-    if res.body.include?('Access denied')
-      # This probably means the Views Module actually isn't installed
-      print_error("Access denied")
-      return Exploit::CheckCode::Safe
-    elsif res.message != 'OK' || res.body != '[  ]'
-      return Exploit::CheckCode::Safe
-    else
-      return Exploit::CheckCode::Appears
-    end
-  end
+  #   unless res
+  #     return Exploit::CheckCode::Unknown
+  #   end
+  #   if res.body.include?('Access denied')
+  #     # This probably means the Views Module actually isn't installed
+  #     print_error("Access denied")
+  #     return Exploit::CheckCode::Safe
+  #   elsif res.message != 'OK' || res.body != '[  ]'
+  #     return Exploit::CheckCode::Safe
+  #   else
+  #     return Exploit::CheckCode::Appears
+  #   end
+  # end
 
 end
