@@ -4,8 +4,8 @@ metasploit module to perform user enumeration against Jira servers, only tested 
 # How to import:
 ```sh
 copy file to /modules/auxiliary/scanner/http
-run 'sudo updatedb'
-exit and reopen metasploit
+run 'sudo updateddb'
+exit and re-open metasploit
 ```
 
 
